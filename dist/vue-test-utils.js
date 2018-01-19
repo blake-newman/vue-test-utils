@@ -15,6 +15,20 @@ function warn (msg) {
   console.error(("[vue-test-utils]: " + msg));
 }
 
+var camelizeRE = /-(\w)/g;
+var camelize = function (str) { return str.replace(camelizeRE, function (_, c) { return c ? c.toUpperCase() : ''; }); };
+
+/**
+ * Capitalize a string.
+ */
+var capitalize = function (str) { return str.charAt(0).toUpperCase() + str.slice(1); };
+
+/**
+ * Hyphenate a camelCase string.
+ */
+var hyphenateRE = /\B([A-Z])/g;
+var hyphenate = function (str) { return str.replace(hyphenateRE, '-$1').toLowerCase(); };
+
 if (typeof window === 'undefined') {
   throwError(
     'window is undefined, vue-test-utils needs to be run in a browser environment.\n' +
@@ -4113,9 +4127,9 @@ function isPrimitive (value) {
 function isAsyncPlaceholder (node) {
   return node.isComment && node.asyncFactory
 }
-var camelizeRE = /-(\w)/g;
-var camelize = function (str) {
-  return str.replace(camelizeRE, function (_, c) { return c ? c.toUpperCase() : ''; })
+var camelizeRE$1 = /-(\w)/g;
+var camelize$1 = function (str) {
+  return str.replace(camelizeRE$1, function (_, c) { return c ? c.toUpperCase() : ''; })
 };
 
 function extractTransitionData (comp) {
@@ -4129,7 +4143,7 @@ function extractTransitionData (comp) {
   // extract listeners and pass them directly to the transition methods
   var listeners = options._parentListeners;
   for (var key$1 in listeners) {
-    data[camelize(key$1)] = listeners[key$1];
+    data[camelize$1(key$1)] = listeners[key$1];
   }
   return data
 }
@@ -4355,7 +4369,7 @@ function createConstructor (
     addMocks(mountingOptions.mocks, vue);
   }
 
-  if (component.functional) {
+  if ((component.options && component.options.functional) || component.functional) {
     component = createFunctionalComponent(component, mountingOptions);
   } else if (mountingOptions.context) {
     throwError(
@@ -4490,9 +4504,16 @@ function shallow (
   if ( options === void 0 ) options = {};
 
   var vue = options.localVue || Vue;
+
+  // remove any recursive components added to the constructor
+  // in vm._init from previous tests
+  if (component.name && component.components) {
+    delete component.components[capitalize(camelize(component.name))];
+    delete component.components[hyphenate(component.name)];
+  }
+
   var stubbedComponents = createComponentStubsForAll(component);
   var stubbedGlobalComponents = createComponentStubsForGlobals(vue);
-
   return mount(component, Object.assign({}, options,
     {components: Object.assign({}, stubbedGlobalComponents,
       stubbedComponents,
